@@ -1,0 +1,354 @@
+using DevExtreme.AspNet.Mvc.Builders;
+using DevExtreme.AspNet.Mvc.Factories;
+using DevExtreme.AspNet.Mvc;
+using System;
+using System.Linq.Expressions;
+using Wodin.Helper.Extensoes;
+using Wodin.Service.System_.Resources;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using Wodin.Service.Helper.DevExtreme.Base.Generic;
+using Wodin.Service.Helper.DevExtreme.Entity.Collections;
+using Wodin.Service.Helper.DevExtreme.Entity.Helper;
+using Wodin.Service.Helper.DevExtreme.Entity.TextBox.Collections;
+using Wodin.Service.Helper.DevExtreme.Entity.TextBox.Collections.TextBoxControllerAction;
+using Wodin.Service.Helper.DevExtreme.Entity.Validation;
+
+namespace Wodin.Service.Helper.DevExtreme.Entity.TextBox
+{
+    public static class MyTextBox
+    {
+        public static string GetMemberName<T, TValue>(Expression<Func<T, TValue>> memberAccess)
+        {
+            return ((MemberExpression)memberAccess.Body).Member.Name;
+        }
+
+        private static string GetID(string name)
+        {
+            return DevExtremeType.dxTextBox.GetMemberValue() + name;
+        }
+
+        private static TextBoxBuilder ConfigureTextBox(
+            this TextBoxBuilder textBox,
+            FormOperationType typeFormOperation,
+            MaskType maskType,
+            CaseType cCase,
+            bool forceReadOnly,
+            string id,
+            string hint)
+        {
+            if (cCase == CaseType.LowerCase)
+                textBox.ElementAttr("class", "lowercase");
+            else if (cCase == CaseType.UpperCase)
+                textBox.ElementAttr("class", "uppercase");
+
+            textBox.Mask(HelperDev.MaskTextBox(maskType).Mask)
+                .Mode(HelperDev.MaskTextBox(maskType).Mode)
+                .MaskChar(HelperDev.MaskTextBox(maskType).MaskChar)
+                .MaskRules(HelperDev.MaskTextBox(maskType).MaskRules)
+                .MaskInvalidMessage("Valor inválido para a máscara do campo")
+                .UseMaskedValue(false)
+                .ReadOnly(forceReadOnly || HelperDev.ReadOnly(typeFormOperation))
+                .FocusStateEnabled(!forceReadOnly && !HelperDev.ReadOnly(typeFormOperation))
+                .Hint(hint);
+
+            id = string.IsNullOrEmpty(id) ? GetID(id) : id;
+
+            textBox.ID(id);
+
+            return textBox;
+        }
+
+        public static TextBoxBuilder AddMyTextBox(
+            this FormItemEditorFactory factory,
+            FormOperationType typeFormOperation = FormOperationType.InPutForm,
+            MaskType maskType = MaskType.None,
+            CaseType cCase = CaseType.UpperCase,
+            bool forceReadOnly = false,
+            string id = null,
+            string hint = null)
+        {
+            var textBox = factory.TextBox();
+            return textBox.ConfigureTextBox(typeFormOperation, maskType, cCase, forceReadOnly, id, hint);
+        }
+
+        public static FormSimpleItemBuilder AddMyTextBoxFor<TFormData, TProperty>(
+            this FormItemsFactory<TFormData> factory,
+            Expression<Func<TFormData, TProperty>> expression,
+            FormOperationType typeFormOperation = FormOperationType.InPutForm,
+            Action<TextBoxBuilder> configureTextBox = null,
+            string textLabel = null,
+            FormLabelLocation formLabelLocation = FormLabelLocation.Top,
+            string cssClass = "",
+            bool showLabel = true,
+            ValidationRules<TFormData> validationRules = null,
+            MaskType maskType = MaskType.None,
+            CaseType cCase = CaseType.UpperCase,
+            bool forceReadOnly = false,
+            string id = null,
+            string hint = null,
+            int colSpan = 1)
+        {
+
+
+            id = string.IsNullOrEmpty(id) ? GetID(MyResources.MyResource(expression).FieldName) : id;
+            hint = string.IsNullOrEmpty(hint) ? MyResources.MyResource(expression).Comment : hint;
+
+            var aux = factory.AddMySimpleFor(expression, textLabel, formLabelLocation, cssClass, id, showLabel, validationRules).ColSpan(colSpan);
+            aux.Editor(e =>
+            {
+                var textBox = e.AddMyTextBox(typeFormOperation, maskType, cCase, forceReadOnly, id, hint);
+                configureTextBox?.Invoke(textBox);
+                return textBox;
+            });
+
+            return aux;
+        }
+
+        public static FormSimpleItemBuilder AddMyTextBox<TFormData>(
+            this FormItemsFactory<TFormData> factory,
+            FormOperationType typeFormOperation = FormOperationType.InPutForm,
+            Action<TextBoxBuilder> configureTextBox = null,
+            string textLabel = null,
+            FormLabelLocation formLabelLocation = FormLabelLocation.Top,
+            string cssClass = "",
+            bool showLabel = true,
+            ValidationRules<TFormData> validationRules = null,
+            MaskType maskType = MaskType.None,
+            CaseType cCase = CaseType.UpperCase,
+            bool forceReadOnly = false,
+            string id = "",
+            string hint = "",
+            int colSpan = 1)
+        {
+
+            var aux = factory.AddMySimple(textLabel, formLabelLocation, cssClass, id, showLabel, validationRules).ColSpan(colSpan);
+            aux.Editor(e =>
+            {
+                var textBox = e.AddMyTextBox(typeFormOperation, maskType, cCase, forceReadOnly, id, hint);
+                configureTextBox?.Invoke(textBox);
+                return textBox;
+            });
+
+            return aux;
+        }
+        public static FormSimpleItemBuilder AddMyTextBoxSearchFor<TFormData, TProperty>(
+         this FormItemsFactory<TFormData> factory,
+         Expression<Func<TFormData, TProperty>> exprIdPk,
+         IUrlHelper url,
+         TextBoxGroupSearch textBoxController,
+         Action<TextBoxBuilder> configureTextBox = null,
+         int colSpan = 1,
+         string text = "",
+         string hint = "",
+         ButtonType buttonType = ButtonType.Default,
+         string width = "100%",
+         TextBoxSearchFor textBoxSearchFor = null,
+         FormOperationType typeFormOperation = FormOperationType.InPutForm,
+         MaskType typeMask = MaskType.None,
+         CaseType cCase = CaseType.UpperCase,
+         string textLabel = null,
+         FormLabelLocation formLabelLocation = FormLabelLocation.Top,
+         bool forceReadOnly = false,
+         string cssClass = "",
+         string id = "",
+         IList<KeyValueControl> objectsEqual = null,
+         bool showLabel = true,
+         ValidationRules<TFormData> validationRules = null,
+         string onGetFilter = "",
+         bool ignoreQueryFilters = false,
+         List<TextEditorButtonBuilder> buttonBuilders = null,
+         string mask = "")
+        {
+            id = string.IsNullOrEmpty(id) ? GetID(MyResources.MyResource(exprIdPk).FieldName) : id;
+
+            if (textBoxSearchFor == null)
+            {
+                textBoxSearchFor = new TextBoxSearchFor()
+                {
+                    FieldEqualList = new List<KeyValueControl>()
+                };
+            }
+
+            textBoxSearchFor.IgnoreQueryFilters = ignoreQueryFilters;
+            textBoxSearchFor.FieldEqualList.Insert(0, new KeyValueControl(textBoxController.IdFk, id, false));
+
+            if (objectsEqual != null)
+                foreach (var item in objectsEqual)
+                    textBoxSearchFor.FieldEqualList.Add(new KeyValueControl(item.FieldName, item.FieldValue, item.LockControl));
+
+            if (hint == "")
+                hint = MyResources.MyResource(exprIdPk).Comment;
+
+            cssClass = "no-padding-right";
+
+            string onAction = "function() {" +
+                              "var readOnly = $(" + id + ").dxTextBox('instance').option('readOnly');" +
+                              "if (readOnly && {showPopup}){" +
+                              "ShowToast('O controle está bloqueado, não é permitido realizar a pesquisa.','" +
+                              ToastType.Warning.GetMemberValue() + "');" +
+                              "exit;" +
+                              "}";
+
+            onAction += "var keyValue = $(" + id + ").dxTextBox('instance').option('value');";
+
+            switch (typeMask)
+            {
+                case MaskType.Telefone:
+                case MaskType.Cpf:
+                case MaskType.Cnpj:
+                case MaskType.Cep:
+                    {
+                        onAction += "keyValue = keyValue.replace(/[^0-9]+/g,'');";
+                        break;
+                    }
+            }
+
+            if (onGetFilter != "")
+                onGetFilter = "function() { return " + onGetFilter + "}";
+
+            onAction += "OpenFindWindow('" + url.Action(textBoxController.Action, textBoxController.ControllerName) + "','" + JsonConvert.SerializeObject(textBoxSearchFor, Formatting.None) + "','" + textBoxController.IdFk + "', keyValue, {showPopup}, " + onGetFilter + ");}";
+
+            return factory.AddMyTextBoxFor(exprIdPk, typeFormOperation,
+                config =>
+                {
+                    config
+                        .OnInput(onAction.Replace("{showPopup}", "false"))
+                        .OnValueChanged(onAction.Replace("{showPopup}", "false"))
+                        .Buttons(buttons =>
+                        {
+                            buttons.Add()
+                                .Name("BtnOf" + id)
+                                .Location(TextEditorButtonLocation.After)
+                                .Widget(w =>
+                                {
+                                    return w.Button()
+                                        .ElementAttr("class", "wd-btn-default")
+                                        .Icon("search")
+                                        .Text(text)
+                                        .Type(ButtonType.Default)
+                                        .Hint(hint)
+                                        .Width(width)
+                                        .Disabled(forceReadOnly || HelperDev.ReadOnly(typeFormOperation))
+                                        .OnClick(onAction.Replace("{showPopup}", "true"));
+                                });
+                        })
+                        .Mask(mask)
+                        .OnContentReady(onAction.Replace("{showPopup}", "false"));
+
+                    if (configureTextBox != null)
+                        configureTextBox?.Invoke(config);
+                },
+                textLabel, formLabelLocation, cssClass, showLabel, validationRules, typeMask, cCase, forceReadOnly, id, hint, colSpan);
+        }
+
+
+        //Todo Refazer DexExtreme
+        public static FormGroupItemBuilder<TFormData> AddMyTextBoxGroupSearchFor<TFormData, TProperty>(
+            this FormItemsFactory<TFormData> factory,
+            Expression<Func<TFormData, TProperty>> exprIdPk,
+            IUrlHelper url,
+            TextBoxGroupSearch textBoxController,
+            string idObjDescricao = "",
+            string labelDescricao = " ",
+            string id = "",
+            IList<KeyValueControl> objectsEqual = null,
+            int colSpan = 1,
+            string text = "",
+            string hint = "",
+            ButtonType buttonType = ButtonType.Default,
+            string width = "100%",
+            FormOperationType typeFormOperation = FormOperationType.InPutForm,
+            MaskType typeMask = MaskType.None,
+            CaseType cCase = CaseType.UpperCase,
+            string textLabel = null,
+            FormLabelLocation formLabelLocation = FormLabelLocation.Top,
+            bool forceReadOnly = false,
+            string cssClass = "",
+            bool showLabel = true,
+            ValidationRules<TFormData> validationRules = null,
+            RazorBlock onFocusIn = null,
+            RazorBlock onFocusOut = null,
+            RazorBlock onValueChanged = null,
+            string onGetFilter = "",
+            bool ignoreQueryFilters = false,
+            int perctWidthId = 30,
+            bool showButtonNew = true,
+            List<TextEditorButtonBuilder> buttonBuilders = null,
+            string mask = "")
+        {
+            if (id == "")
+                id = GetID(MyResources.MyResource(exprIdPk).FieldName);
+            else
+                id = GetID(id);
+
+            if (idObjDescricao == "")
+                idObjDescricao = GetID(GetMemberName(exprIdPk) + "descricao");
+            else
+                idObjDescricao = GetID(idObjDescricao);
+
+            var textBoxSearchFor = new TextBoxSearchFor();
+            textBoxSearchFor.FieldEqualList = new List<KeyValueControl>();
+            var fieldEqualList = new List<KeyValueControl>
+            {
+                new (textBoxController.DescricaoFk, idObjDescricao, true),
+                new ("showButtonNew", showButtonNew.ToString())
+            };
+
+            foreach (var item in fieldEqualList)
+            {
+                textBoxSearchFor.FieldEqualList.Insert(0, item);
+            }
+
+            return factory.AddGroup().Name(id + "Name").ColCount(100).Items(i =>
+            {
+                var aux = i.AddMyTextBoxSearchFor(exprIdPk, colSpan: perctWidthId, url: url, typeFormOperation: typeFormOperation,
+                   id: id, objectsEqual: objectsEqual, typeMask: typeMask, cCase: cCase,
+                   forceReadOnly: forceReadOnly, cssClass: cssClass, textLabel: textLabel, hint: MyResources.MyResource(exprIdPk).Comment,
+                   textBoxController: textBoxController, showLabel: showLabel,
+                   validationRules: validationRules,
+                   textBoxSearchFor: textBoxSearchFor,
+                   ignoreQueryFilters: ignoreQueryFilters,
+                   onGetFilter: onGetFilter,
+                   mask: mask,
+                   configureTextBox: config =>
+                   {
+                       if (onFocusIn != null)
+                           config.OnFocusIn(onFocusIn);
+
+                       if (onFocusOut != null)
+                           config.OnFocusOut(onFocusOut);
+                   }
+               );
+
+                var perctWidthDescricao = 100 - perctWidthId;
+
+                var aux2 = i.AddMyTextBox(
+                    typeFormOperation: typeFormOperation,
+                    configureTextBox: config =>
+                    {
+                        if (onFocusIn != null)
+                            config.OnFocusIn(onFocusIn);
+
+                        if (onFocusOut != null)
+                            config.OnFocusOut(onFocusOut);
+
+                        if (onValueChanged != null)
+                            config.OnValueChanged(onValueChanged);
+                    },
+                    textLabel: labelDescricao,
+                    formLabelLocation: formLabelLocation,
+                    cssClass: cssClass,
+                    showLabel: true,
+                    validationRules: null,
+                    maskType: MaskType.None,
+                    cCase: cCase,
+                    forceReadOnly: true,
+                    id: idObjDescricao,
+                    colSpan: perctWidthDescricao);
+
+            }).ColSpan(colSpan);
+        }
+    }
+}
